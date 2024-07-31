@@ -4,7 +4,7 @@ use winit::{
     event::*,
 };
 
-use crate::{camera::Camera, objects::*};
+use crate::{camera::{Camera, CameraController}, objects::*};
 
 
 
@@ -44,6 +44,7 @@ pub struct State<'a> {
     clear_color: wgpu::Color,
     object_groups: Vec<ObjectGroup>,
     camera: Camera,
+    camera_controller: CameraController,
     //instance_groups: Vec<InstanceGroup>,
 }
 
@@ -106,7 +107,7 @@ impl <'a> State<'a > {
         
         object_groups.push(ObjectGroup::new(&device, &config, &camera));
         
-        
+        let camera_controller = CameraController::new(0.2f32);
 
         Self {
             surface,
@@ -117,7 +118,8 @@ impl <'a> State<'a > {
             window,
             clear_color,
             object_groups,
-            camera
+            camera,
+            camera_controller
         }
     }
 
@@ -136,11 +138,14 @@ impl <'a> State<'a > {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        self.camera_controller.process_events(event)
     }
 
     pub fn update(&mut self){
-
+        //TODO: I dont think this is very clean, probably want to write to the buffer inside of the camera controller.
+        self.camera_controller.update_camera(&mut self.camera.camera_inner);
+        self.camera.camera_uniform.update_view_proj(&self.camera.camera_inner);
+        self.queue.write_buffer(&self.camera.camera_buffer, 0, bytemuck::cast_slice(&[self.camera.camera_uniform]));
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

@@ -24,24 +24,29 @@ impl Vertex {
 }
 
 const INDICES: &[u16] = &[
-    // Front face
-    0, 1, 2,
-    2, 3, 0,
-    // Back face
-    4, 5, 6,
-    6, 7, 4,
-    // Left face
-    4, 0, 3,
-    3, 7, 4,
-    // Right face
-    1, 5, 6,
-    6, 2, 1,
-    // Top face
-    3, 2, 6,
-    6, 7, 3,
-    // Bottom face
-    4, 5, 1,
-    1, 0, 4,
+        //Top (+z)
+        7, 4, 5,
+        7, 5, 6,
+
+        //bottom (-z)
+        3, 1, 0, 
+        3, 2, 1,
+
+        //Front (-y)
+        4, 0, 1,
+        4, 1, 5,
+
+        //Back (+y)
+        6, 2, 3,
+        6, 3, 7,
+
+        //Left (-x)
+        7, 3, 0,
+        7, 0, 4,
+
+        //right (+x)
+        5, 2, 6,
+        5, 1, 2,
 ];
 
 pub struct Object {
@@ -62,14 +67,15 @@ impl Object {
         let random_color: [f32; 3] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32];
 
         let vertices: &[Vertex] = &[
-            Vertex{ position: [random_x, random_y, random_z], color: random_color}, //A
-            Vertex{ position: [random_x + 1f32, random_y, random_z], color: random_color}, //B
-            Vertex{ position: [random_x + 1f32, random_y + 1f32, random_z], color: random_color}, //C
-            Vertex{ position: [random_x, random_y + 1f32, random_z], color: random_color}, //D
-            Vertex{ position: [random_x, random_y, random_z + 1f32], color: random_color}, //E
-            Vertex{ position: [random_x + 1f32, random_y, random_z + 1f32], color: random_color}, //F
-            Vertex{ position: [random_x + 1f32, random_y + 1f32, random_z + 1f32], color: random_color}, //G
-            Vertex{ position: [random_x, random_y + 1f32, random_z + 1f32], color: random_color}, //H
+            Vertex{ position: [random_x, random_y, random_z], color: random_color}, //0
+            Vertex{ position: [random_x + 1.0, random_y, random_z], color: random_color}, //1
+            Vertex{ position: [random_x + 1.0, random_y + 1.0, random_z], color: random_color}, //2
+            Vertex{ position: [random_x, random_y + 1.0, random_z], color: random_color}, //3
+            Vertex{ position: [random_x, random_y, random_z + 1.0], color: random_color}, //4
+            Vertex{ position: [random_x + 1.0, random_y, random_z + 1.0], color: random_color}, //5
+            Vertex{ position: [random_x + 1.0, random_y + 1.0, random_z + 1.0], color: random_color}, //6
+            Vertex{ position: [random_x, random_y + 1.0, random_z + 1.0], color: random_color}, //7
+
         ];
 
         Self {
@@ -137,7 +143,7 @@ impl ObjectGroup {
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: wgpu::FrontFace::Cw,
+                front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
                 unclipped_depth: false,
                 polygon_mode: wgpu::PolygonMode::Fill,
