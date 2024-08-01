@@ -176,6 +176,13 @@ impl ObjectGroup {
         // }
         objects.push(Object::new_chunk(device, 0, 0));
 
+        for x in -5..5 {
+            for y in -5..5 {
+                objects.push(Object::new_chunk(device, x, y));
+            }
+            
+        }
+
 
         Self {
             render_pipeline,

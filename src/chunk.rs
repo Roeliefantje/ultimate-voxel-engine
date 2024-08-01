@@ -77,7 +77,7 @@ impl Object {
             for x in 0..CHUNK_SIZE {
                 // let z_val: f32 = 1.0;
                 let z_val = perlin.get([(x_offset + x) as f64 / 10.0, (y_offset + y) as f64 / 10.0]) * 4.0;
-                println!("z_val: {:?}", z_val);
+                // println!("z_val: {:?}", z_val);
                 let (cube_vertex, cube_index) = create_cube_mesh((x_offset + x) as f32, (y_offset + y) as f32, z_val as f32, current_offset_indices);
                 
                 let v_index = ((CHUNK_SIZE * y + x) * 8) as usize;
