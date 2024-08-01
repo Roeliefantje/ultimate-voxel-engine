@@ -1,4 +1,3 @@
-use wgpu::{core::{command::ClearError, instance}, hal::gles::Adapter, rwh::AppKitDisplayHandle, util::DeviceExt};
 use winit::{
     window::Window,
     event::*,
@@ -154,6 +153,8 @@ impl <'a> State<'a > {
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        // use std::time::Instant;
+        // let now = Instant::now();
 
         let output = self.surface.get_current_texture()?;
 
@@ -205,6 +206,8 @@ impl <'a> State<'a > {
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
+        // let elapsed = now.elapsed();
+        // println!("Elapsed: {:.2?}", elapsed);
 
         Ok(())
     }

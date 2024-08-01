@@ -59,8 +59,8 @@ pub struct Camera {
 impl Camera {
     pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
         let inner_camera = CameraInner {
-            eye: (-5.0, 0.0, 0.0).into(),
-            target: (5.0, 5.0, 5.0).into(),
+            eye: (16.0, 16.0, 20.0).into(),
+            target: (16.0, 16.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: config.width as f32 / config.height as f32,
             fovy: 45.0,

@@ -5,9 +5,18 @@ use crate::{camera::Camera, texture};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
-    position: [f32; 3],
-    color: [f32; 3]
+pub struct Vertex {
+    pub position: [f32; 3],
+    pub color: [f32; 3]
+}
+
+impl Default for Vertex {
+    fn default() -> Self {
+        Self {
+            position: [0.0, 0.0, 0.0],
+            color: [0.0, 0.0, 0.0]
+        }
+    }
 }
 
 impl Vertex {
@@ -56,13 +65,13 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(device: &wgpu::Device) -> Object {
+    pub fn new_cube(device: &wgpu::Device) -> Object {
         
         let mut rng = rand::thread_rng();
         //cube kek
-        let random_x: f32 = rng.gen_range(0..10) as f32;
-        let random_y: f32 = rng.gen_range(0..10) as f32;
-        let random_z: f32 = rng.gen_range(0..10) as f32;
+        let random_x: f32 = rng.gen_range(-15..15) as f32;
+        let random_y: f32 = rng.gen_range(-15..15) as f32;
+        let random_z: f32 = rng.gen_range(-15..15) as f32;
 
         let random_color: [f32; 3] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32];
 
@@ -162,14 +171,10 @@ impl ObjectGroup {
 
         let mut objects: Vec<Object> = Vec::new();
 
-        for _ in 0..100 {
-            objects.push(Object::new(device)); 
-        }
-
-        // objects.push(Object::new(device));
-        // objects.push(Object::new(device));
-        // objects.push(Object::new(device));
-        // objects.push(Object::new(device));
+        // for _ in 0..1000 {
+        //     objects.push(Object::new_cube(device)); 
+        // }
+        objects.push(Object::new_chunk(device, 0, 0));
 
 
         Self {
