@@ -3,7 +3,7 @@ use winit::{
     event::*,
 };
 
-use crate::{camera::{Camera, CameraController}, objects::*, texture::*};
+use crate::{camera::{Camera, CameraController}, objects::*, path_tracing::PTRender, texture::*};
 
 
 
@@ -45,6 +45,7 @@ pub struct State<'a> {
     camera: Camera,
     camera_controller: CameraController,
     depth_texture: Texture,
+    pt_render: PTRender,
     //instance_groups: Vec<InstanceGroup>,
 }
 
@@ -111,6 +112,8 @@ impl <'a> State<'a > {
 
         let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
+        let pt_render = PTRender::new(&device, &config, &queue);
+
         Self {
             surface,
             device,
@@ -122,7 +125,8 @@ impl <'a> State<'a > {
             object_groups,
             camera,
             camera_controller,
-            depth_texture
+            depth_texture,
+            pt_render,
         }
     }
 
@@ -165,6 +169,7 @@ impl <'a> State<'a > {
         });
 
         //Clear the screen
+        #[cfg(feature = "rasterization")]
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -199,6 +204,30 @@ impl <'a> State<'a > {
                     render_pass.draw_indexed(0..object.num_vertices, 0, 0..1);
                 }
             }
+        }
+
+        #[cfg(not(feature = "rasterization"))]
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations { 
+                        load: wgpu::LoadOp::Clear(self.clear_color),
+                        store: wgpu::StoreOp::Store,
+                    }
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+
+            render_pass.set_pipeline(&self.pt_render.render_pipeline);
+            render_pass.set_bind_group(0, &self.pt_render.bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.pt_render.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.pt_render.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(0..self.pt_render.num_vertices, 0, 0..1);
         }
 
         
