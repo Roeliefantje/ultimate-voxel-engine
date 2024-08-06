@@ -6,6 +6,9 @@
 //! 5. Render the pixels on the screen.
 //! 6. Profit.
 
+use std::vec;
+
+use cgmath::Vector2;
 use wgpu::{util::DeviceExt, Sampler};
 
 use crate::texture::Texture;
@@ -63,8 +66,6 @@ pub struct TracingCamera {
     pub looking_at: [f32; 3],
     pub focal_distance: f32,
     pub screen_size: [usize; 2],
-    pub render_ratio: [u8; 2],
-
 }
 
 pub struct PTRender {
@@ -225,14 +226,27 @@ impl PTRender {
     }
 }
 
+
+fn normalize_vector(vector: &[f32; 3]) -> [f32; 3] {
+    let magnitude = (vector[0].powf(2.0) + vector[1].powf(2.0) + vector[2].powf(2.0)).sqrt();
+    [vector[0] / magnitude, vector[1] / magnitude, vector[2] / magnitude]
+}
+
+fn cross_vector(v: &[f32; 3], u: &[f32; 3]) -> [f32; 3] {
+    [
+        v[1] * u[2] - v[2] * u[1],
+        v[2] * u[0] - v[0] * u[2],
+        v[0] * u[1] - v[1] * u[0],
+    ]
+}
+
 impl TracingCamera {
     pub fn new() -> Self {       
         Self {
             origin: [0.0, 0.0, 0.0],
-            focal_distance: 0.5,
+            focal_distance: 4.0,
             screen_size: [1920, 1080],
-            looking_at: [10.0, 10.0, 5.0],
-            render_ratio: [16, 9],
+            looking_at: [10.0, 10.0, 5.0]
         }
     }
 
@@ -240,19 +254,30 @@ impl TracingCamera {
 
         let mut render_image = RenderImage::new(self.screen_size[0], self.screen_size[1]);
 
-        let plane_center_z = self.focal_distance;
-        let plane_center_x = self.looking_at[0] * (self.focal_distance / self.looking_at[2]);
-        let plane_center_y = self.looking_at[1] * (self.focal_distance / self.looking_at[2]);
+        let looking_at_n = normalize_vector(&self.looking_at);
+        let plane_center = [looking_at_n[0] * self.focal_distance, looking_at_n[1] * self.focal_distance, looking_at_n[2] * self.focal_distance];
+        let mut up_vector = [0.0, 0.0, 1.0];
+        let left_vec = cross_vector(&looking_at_n, &up_vector);
+        up_vector = cross_vector(&looking_at_n, &left_vec);
+        	
+        let aspect_ratio = self.screen_size[0] as f32 / self.screen_size[1] as f32;
 
-        let center = [plane_center_x, plane_center_y, plane_center_z];
-        let top_left = [center[0] - (self.render_ratio[0] as f32 / 2.0), center[1] - (self.render_ratio[1] as f32 / 2.0), center[2]];
-        // let bottom_right = [center[0] + (self.render_ratio[0] as f32 / 2.0), center[1] + (self.render_ratio[1] as f32 / 2.0), center[2]];
+        let top_left = [
+            plane_center[0] + left_vec[0] * aspect_ratio + up_vector[0], 
+            plane_center[1] + left_vec[1] * aspect_ratio + up_vector[1], 
+            plane_center[2] + left_vec[2] * aspect_ratio + up_vector[2], 
+        ];
         
         for y in 0..self.screen_size[1]{
+            let v = y as f32 / self.screen_size[1] as f32;
             for x in 0..self.screen_size[0] {
-                let screen_place = [top_left[0] + (x as f32 / self.screen_size[0] as f32) * self.render_ratio[0] as f32,
-                                              top_left[1] + (y as f32 / self.screen_size[1] as f32) * self.render_ratio[1] as f32,
-                                              top_left[2]];
+                let u = x as f32 / self.screen_size[0] as f32;
+
+                let screen_place = [
+                    top_left[0] - left_vec[0] * u * 2.0 * aspect_ratio - up_vector[0] * v * 2.0,
+                    top_left[1] - left_vec[1] * u * 2.0 * aspect_ratio - up_vector[1] * v * 2.0,
+                    top_left[2] - left_vec[2] * u * 2.0 * aspect_ratio - up_vector[2] * v * 2.0,
+                ];
                 
                 let velocity = [screen_place[0] - self.origin[0],
                                           screen_place[1] - self.origin[1],
@@ -279,8 +304,17 @@ impl TracingCamera {
 impl Scene {
 
     pub fn new() -> Self {
+
+        let mut cubes: Vec<Cube> = vec![];
+
+        cubes.push(Cube {
+            min: [9.0, 9.0, 5.0],
+            max: [10.0, 10.0, 6.0],
+            color: [1.0, 1.0, 1.0, 1.0],
+        });
+
         Self {
-            cubes: vec![],
+            cubes: cubes,
             background_rgba: [0.4, 0.5, 0.6, 1.0],
         }
     }
@@ -289,8 +323,10 @@ impl Scene {
     fn get_color(&self, mut ray: Ray) -> [f32; 4]{
 
         let mut rgba = self.background_rgba;
+        // println!("Getting color");
 
         for cube in &self.cubes {
+            // println!("Intersecting ray");
             cube.intersect_ray(&mut ray);
         }
 
@@ -307,15 +343,13 @@ impl Cube {
         //https://tavianator.com/cgit/dimension.git/tree/libdimension/bvh/bvh.c#n196
         //https://education.siggraph.org/static/HyperGraph/raytrace/rtinter3.htm
         //Not the best way yet, but more intuitive.
-
-
         let mut tnear = f32::MIN;
         let mut tfar = f32::MAX;
 
         for d in 0..3 as usize {
 
-            if (ray.velocity[d] == 0.0) {
-                if (ray.origin[d] >= self.min[d] && ray.origin[d] <= self.max[d]){
+            if ray.velocity[d] == 0.0 {
+                if ray.origin[d] >= self.min[d] && ray.origin[d] <= self.max[d]{
                     continue
                 } else {
                     return;

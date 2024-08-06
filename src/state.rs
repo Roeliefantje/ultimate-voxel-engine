@@ -114,6 +114,8 @@ impl <'a> State<'a > {
 
         let pt_render = PTRender::new(&device, &config, &queue);
 
+        println!("Finished creating state");
+
         Self {
             surface,
             device,
