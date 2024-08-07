@@ -4,4 +4,3 @@ pub mod camera;
 pub mod texture;
 pub mod chunk;
 pub mod path_tracing;
-pub mod quaternion;

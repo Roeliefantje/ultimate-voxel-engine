@@ -1,6 +1,6 @@
 use wgpu::ImageCopyTextureBase;
 
-use crate::path_tracing::RenderImage;
+use crate::path_tracing::render_image::RenderImage;
 
 pub struct Texture {
     #[allow(unused)]

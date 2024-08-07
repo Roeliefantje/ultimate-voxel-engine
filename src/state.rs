@@ -3,7 +3,7 @@ use winit::{
     event::*,
 };
 
-use crate::{camera::{Camera, CameraController}, objects::*, path_tracing::PTRender, texture::*};
+use crate::{camera::{Camera, CameraController}, objects::*, path_tracing::pt_render::PTRender, texture::*};
 
 
 
