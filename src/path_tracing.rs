@@ -274,19 +274,19 @@ impl TracingCamera {
 
     }
 
-    pub fn rotate_camera_yaw(mut self, rad: f32) {
+    pub fn rotate_camera_yaw(&mut self, rad: f32) {
         let q = Quaternion::from_axis_angle(self.up_vec, rad);
         self.left_vec = q.rotate_vector(self.left_vec);
         self.forward_vec = q.rotate_vector(self.forward_vec);
     }
 
-    pub fn rotate_camera_pitch(mut self, rad: f32) {
+    pub fn rotate_camera_pitch(&mut self, rad: f32) {
         let q = Quaternion::from_axis_angle(self.left_vec, rad);
         self.up_vec = q.rotate_vector(self.up_vec);
         self.forward_vec = q.rotate_vector(self.forward_vec);
     }
 
-    pub fn rotate_camera_roll(mut self, rad: f32) {
+    pub fn rotate_camera_roll(&mut self, rad: f32) {
         let q = Quaternion::from_axis_angle(self.forward_vec, rad);
         self.up_vec = q.rotate_vector(self.up_vec);
         self.left_vec = q.rotate_vector(self.left_vec);
@@ -346,7 +346,7 @@ impl Scene {
 
         let mut cubes: Vec<Cube> = vec![];
 
-        for _ in 0..10 {
+        for _ in 0..1 {
             let mut rng = rand::thread_rng();
             let random_location: [f32; 3] = [rng.gen_range(15..25) as f32, rng.gen_range(15..25) as f32, rng.gen_range(15..25) as f32];
             let random_color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];

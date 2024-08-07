@@ -41,7 +41,7 @@ pub struct State<'a> {
     size: winit::dpi::PhysicalSize<u32>,
     window: &'a Window,
     clear_color: wgpu::Color,
-    object_groups: Vec<ObjectGroup>,
+    #[cfg(feature = "rasterization")] object_groups: Vec<ObjectGroup>,
     camera: Camera,
     camera_controller: CameraController,
     depth_texture: Texture,
@@ -124,7 +124,7 @@ impl <'a> State<'a > {
             size,
             window,
             clear_color,
-            object_groups,
+            #[cfg(feature = "rasterization")] object_groups,
             camera,
             camera_controller,
             depth_texture,
@@ -153,9 +153,19 @@ impl <'a> State<'a > {
 
     pub fn update(&mut self){
         //TODO: I dont think this is very clean, probably want to write to the buffer inside of the camera controller.
-        self.camera_controller.update_camera(&mut self.camera.camera_inner);
-        self.camera.camera_uniform.update_view_proj(&self.camera.camera_inner);
-        self.queue.write_buffer(&self.camera.camera_buffer, 0, bytemuck::cast_slice(&[self.camera.camera_uniform]));
+        #[cfg(feature = "rasterization")]
+        {
+            self.camera_controller.update_camera(&mut self.camera.camera_inner);
+            self.camera.camera_uniform.update_view_proj(&self.camera.camera_inner);
+            self.queue.write_buffer(&self.camera.camera_buffer, 0, bytemuck::cast_slice(&[self.camera.camera_uniform]));
+        }
+        #[cfg(not(feature = "rasterization"))]
+        {
+            // self.pt_render.camera.rotate_camera_pitch(0.01);
+            // self.pt_render.camera.rotate_camera_yaw(0.01);
+            self.pt_render.camera.rotate_camera_roll(0.01);
+            self.pt_render.render_texture.update_texture(&self.queue, &self.pt_render.camera.render_scene(&self.pt_render.scene));
+        }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

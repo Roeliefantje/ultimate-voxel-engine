@@ -107,4 +107,32 @@ impl Texture {
         }
 
     }
+
+    pub fn update_texture(
+        &self,
+        queue: &wgpu::Queue,
+        render_image: &RenderImage,
+    ){
+        let size = wgpu::Extent3d {
+            width: render_image.x_size as u32,
+            height: render_image.y_size as u32,
+            depth_or_array_layers: 1,
+        };
+
+        queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            bytemuck::cast_slice(&render_image.pixels),
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * 4 * render_image.x_size as u32),
+                rows_per_image: Some(render_image.y_size as u32),
+            },
+            size
+        );
+    }
 }
