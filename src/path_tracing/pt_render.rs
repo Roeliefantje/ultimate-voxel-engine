@@ -186,7 +186,7 @@ impl PTRender {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(12 * (mem::size_of::<f32>() as u64)),
+                        min_binding_size: wgpu::BufferSize::new(16 * (mem::size_of::<f32>() as u64)),
                     },
                     count: None,
                 },
@@ -261,15 +261,19 @@ impl PTRender {
             camera.origin[0],
             camera.origin[1],
             camera.origin[2],
+            0.0, //Padding
             camera.forward_vec[0],
             camera.forward_vec[1],
             camera.forward_vec[2],
+            0.0, //Padding
             camera.left_vec[0],
             camera.left_vec[1],
             camera.left_vec[2],
+            0.0, //Padding
             camera.up_vec[0],
             camera.up_vec[1],
             camera.up_vec[2],
+            0.0 //Padding
         ];
 
         let compute_camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -347,7 +351,7 @@ impl PTRender {
             });
             cpass.set_pipeline(&self.compute_pipeline);
             cpass.set_bind_group(0, &self.cube_bind_group, &[]);
-            cpass.dispatch_workgroups(1920 * 1080 / 64, 1, 1);
+            cpass.dispatch_workgroups(1920 / 64, 1080, 1);
         }
 
         let texture_copy_view = wgpu::ImageCopyTexture {
