@@ -1,5 +1,8 @@
-use super::ray::Ray;
+use bytemuck::{Pod, Zeroable};
 
+use super::ray::Ray;
+#[derive(Clone, Copy, Pod, Zeroable)]
+#[repr(C)]
 pub struct Cube {
     pub min: [f32; 3],
     pub max: [f32; 3],

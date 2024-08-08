@@ -1,8 +1,10 @@
+use std::mem;
+
 use wgpu::util::DeviceExt;
 
 use crate::texture::Texture;
 
-use super::{scene::Scene, tracing_camera::TracingCamera};
+use super::{cube::Cube, render_image::RenderImage, scene::Scene, tracing_camera::TracingCamera};
 
 pub struct PTRender {
     pub camera: TracingCamera,
@@ -15,7 +17,16 @@ pub struct PTRender {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub num_vertices: u32,
+
+    pub cube_bind_group: wgpu::BindGroup,
+    pub cube_buffer: wgpu::Buffer,
+    pub compute_pipeline: wgpu::ComputePipeline,
+    pub compute_param_buffer: wgpu::Buffer,
+    pub compute_camera_buffer: wgpu::Buffer,
+    pub compute_texture_output_buffer: wgpu::Buffer,
 }
+
+const MAX_CUBES: u32 = 50000;
 
 impl PTRender {
     pub fn new(
@@ -32,7 +43,9 @@ impl PTRender {
         );
         let scene = Scene::new();
 
-        let render_texture = Texture::create_buffer_from_pixel_vec(device, queue, &camera.render_scene(&scene), "PTRender Texture");
+        let render_texture = Texture::create_buffer_from_pixel_vec(device, queue, &camera.render_scene_cpu(&scene), "PTRender Texture");
+
+        //Texcture render stuffs
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -151,6 +164,153 @@ impl PTRender {
         });
         let num_vertices = index_data.len() as u32;
 
+
+        //Compute Shader setup
+        let compute_shader = device.create_shader_module(wgpu::include_wgsl!("path_tracer.wgsl"));
+
+        let compute_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry { //Amount of cubes
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(mem::size_of::<f32>() as _),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry { //Camera values
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(14 * (mem::size_of::<f32>() as u64)),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry { //Cube in
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry { //Texture out
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("PT Compute bind group layout")
+        });
+
+        let compute_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("PT Compute pipeline layout"),
+            bind_group_layouts: &[&compute_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("PT Compute pipeline"),
+            layout: Some(&compute_pipeline_layout),
+            module: &compute_shader,
+            entry_point: "main",
+            compilation_options: Default::default(),
+        });
+
+        let mut initial_cube_data = vec![
+                Cube{
+                    min: [0.0, 0.0, 0.0],
+                    max: [0.0, 0.0, 0.0],
+                    color: [0.0, 0.0, 0.0, 0.0],
+                };
+                MAX_CUBES as usize
+            ];
+            
+        
+        for i in 0..scene.cubes.len() {
+            initial_cube_data[i] = scene.cubes[i];
+        }
+
+        
+        let cube_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Cube buffer"),
+            contents: bytemuck::cast_slice(&initial_cube_data),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let amount_of_cubes = scene.cubes.len() as f32;
+
+        let compute_param_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Compute Amount of Cubes buffer"),
+            contents: bytemuck::cast_slice(&[amount_of_cubes]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let camera_vectors = [
+            camera.origin[0],
+            camera.origin[1],
+            camera.origin[2],
+            camera.forward_vec[0],
+            camera.forward_vec[1],
+            camera.forward_vec[2],
+            camera.left_vec[0],
+            camera.left_vec[1],
+            camera.left_vec[2],
+            camera.up_vec[0],
+            camera.up_vec[1],
+            camera.up_vec[2],
+        ];
+
+        let compute_camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Compute Camera Buffer"),
+            contents: bytemuck::cast_slice(&camera_vectors),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let initial_output_values = vec![0.0; 1920 * 1080 * 4];
+
+        let compute_texture_output_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Compute Texture output Buffer"),
+            contents: bytemuck::cast_slice(&initial_output_values),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        });
+
+
+        let cube_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &compute_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: compute_param_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: compute_camera_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: cube_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: compute_texture_output_buffer.as_entire_binding(),
+                },
+
+            ],
+            label: Some("Compute Bind group"),
+        });
+
         Self {
             camera,
             scene,
@@ -162,8 +322,59 @@ impl PTRender {
             vertex_buffer,
             index_buffer,
             num_vertices,
+            cube_bind_group,
+            cube_buffer,
+            compute_pipeline,
+            compute_param_buffer,
+            compute_camera_buffer,
+            compute_texture_output_buffer
         }
 
+    }
+
+    pub fn render_scene_gpu(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue
+    ) {
+        
+        let mut command_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("Compute Encoder")}); 
+
+        {
+            let mut cpass = command_encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: None,
+                timestamp_writes: None,
+            });
+            cpass.set_pipeline(&self.compute_pipeline);
+            cpass.set_bind_group(0, &self.cube_bind_group, &[]);
+            cpass.dispatch_workgroups(1920 * 1080 / 64, 1, 1);
+        }
+
+        let texture_copy_view = wgpu::ImageCopyTexture {
+            texture: &self.render_texture.texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        };
+
+        let buffer_copy_view = wgpu::ImageCopyBuffer {
+            buffer: &self.compute_texture_output_buffer,
+            layout: wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some((1920 * 4) as u32), //TODO!: I need to pad I guess for some reason.
+                rows_per_image: Some(1080 as u32),
+            }
+        };
+
+        let size = wgpu::Extent3d {
+            width: 1920,
+            height: 1080,
+            depth_or_array_layers: 1,
+        };
+
+        command_encoder.copy_buffer_to_texture(buffer_copy_view, texture_copy_view, size);
+
+        queue.submit(Some(command_encoder.finish()));
     }
 }
 

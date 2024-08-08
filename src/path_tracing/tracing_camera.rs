@@ -57,7 +57,7 @@ impl TracingCamera {
     }
 
 
-    pub fn render_scene(&self, scene: &Scene) -> RenderImage {
+    pub fn render_scene_cpu(&self, scene: &Scene) -> RenderImage {
 
         let mut render_image = RenderImage::new(self.screen_size[0], self.screen_size[1]);
         let plane_center = [self.forward_vec[0] * self.focal_distance, self.forward_vec[1] * self.focal_distance, self.forward_vec[2] * self.focal_distance];
@@ -69,6 +69,7 @@ impl TracingCamera {
         ];
 
         //TODO!: Calculate bottom right and iterate between them based on u/v to fix aspect ratio possibly.
+        //TODO: Move this to the gpu
         
         for y in 0..self.screen_size[1]{
             let v = y as f32 / self.screen_size[1] as f32;
