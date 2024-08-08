@@ -186,7 +186,7 @@ impl PTRender {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(14 * (mem::size_of::<f32>() as u64)),
+                        min_binding_size: wgpu::BufferSize::new(12 * (mem::size_of::<f32>() as u64)),
                     },
                     count: None,
                 },
@@ -361,7 +361,7 @@ impl PTRender {
             buffer: &self.compute_texture_output_buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some((1920 * 4) as u32), //TODO!: I need to pad I guess for some reason.
+                bytes_per_row: Some((1920 * 4 * 4) as u32), //TODO!: I need to pad I guess for some reason.
                 rows_per_image: Some(1080 as u32),
             }
         };

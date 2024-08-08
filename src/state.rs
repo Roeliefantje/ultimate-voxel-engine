@@ -164,7 +164,8 @@ impl <'a> State<'a > {
             // self.pt_render.camera.rotate_camera_pitch(0.01);
             // self.pt_render.camera.rotate_camera_yaw(0.01);
             self.pt_render.camera.rotate_camera_roll(0.01);
-            self.pt_render.render_texture.update_texture(&self.queue, &self.pt_render.camera.render_scene_cpu(&self.pt_render.scene));
+            // self.pt_render.render_texture.update_texture(&self.queue, &self.pt_render.camera.render_scene_cpu(&self.pt_render.scene));
+            self.pt_render.render_scene_gpu(&self.device, &self.queue);
         }
     }
 
