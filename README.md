@@ -9,6 +9,7 @@ I started this project in order to get more familiar with both wgpu and Rust, by
 I plan to support rasterization rendering of the terrain mostly to compare performance against the path tracer.
 Most of it is already in place and can be ran using:
 ``` cargo --features rasterization ```
+
 It is still very basic and doesn't even support lighting yet.
 
 ### Path Tracer
