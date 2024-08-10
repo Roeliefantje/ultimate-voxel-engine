@@ -45,8 +45,8 @@ impl PTRender {
         let camera_controller = TracingCameraController::new();
 
         let scene = Scene::new();
-
-        let render_texture = Texture::create_buffer_from_pixel_vec(device, queue, &camera.render_scene_cpu(&scene), "PTRender Texture");
+        //TODO!: Make it so I do not need to render the scene on cpu for the original Render_image...
+        let render_texture = Texture::create_buffer_from_pixel_vec(device, queue, &camera.render_scene_cpu(&Scene::empty_scene()), "PTRender Texture");
 
         //Texture render stuffs
 

@@ -13,9 +13,9 @@ impl Scene {
 
         let mut cubes: Vec<Cube> = vec![];
 
-        for _ in 0..10 {
+        for _ in 0..1000 {
             let mut rng = rand::thread_rng();
-            let random_location: [f32; 3] = [rng.gen_range(5..15) as f32, rng.gen_range(5..15) as f32, rng.gen_range(15..25) as f32];
+            let random_location: [f32; 3] = [rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32];
             let random_color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];
             cubes.push(Cube::new_cube_at(&random_location, random_color));
         }
@@ -23,6 +23,13 @@ impl Scene {
 
         Self {
             cubes: cubes,
+            background_rgba: [0.4, 0.5, 0.6, 1.0],
+        }
+    }
+
+    pub fn empty_scene() -> Self {
+        Self {
+            cubes: vec![],
             background_rgba: [0.4, 0.5, 0.6, 1.0],
         }
     }

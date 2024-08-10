@@ -68,7 +68,7 @@ fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
         return;
     }
 
-    let plane_center = camera.origin + camera.forward_vec;
+    let plane_center = camera.origin + camera.forward_vec * 3.0;
     let aspect_ratio = 16.0 / 9.0;
 
     let top_left = plane_center + aspect_ratio * camera.left_vec;
@@ -87,7 +87,7 @@ fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
         vec4<f32>(v, u, amount_of_cubes, 1.0),
     );
 
-    for (var i: i32 = 0; i < 9; i = i + 1){
+    for (var i: i32 = 0; i < i32(amount_of_cubes); i = i + 1){
         ray = intersect_ray(cubes[i], ray);
     }
     
