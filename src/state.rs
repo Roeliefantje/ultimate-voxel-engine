@@ -3,7 +3,7 @@ use winit::{
     event::*,
 };
 
-use crate::{camera::{Camera, CameraController}, objects::*, path_tracing::pt_render::PTRender, texture::*};
+use crate::{camera::{Camera, CameraController}, objects::*, path_tracing::{pt_render::PTRender, tracing_camera::TracingCameraController}, texture::*};
 
 
 
@@ -44,6 +44,7 @@ pub struct State<'a> {
     #[cfg(feature = "rasterization")] object_groups: Vec<ObjectGroup>,
     camera: Camera,
     camera_controller: CameraController,
+    camera_controller_pt: TracingCameraController,
     depth_texture: Texture,
     pt_render: PTRender,
     //instance_groups: Vec<InstanceGroup>,
@@ -113,6 +114,7 @@ impl <'a> State<'a > {
         let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
         let pt_render = PTRender::new(&device, &config, &queue);
+        let camera_controller_pt = TracingCameraController::new();
 
         println!("Finished creating state");
 
@@ -127,6 +129,7 @@ impl <'a> State<'a > {
             #[cfg(feature = "rasterization")] object_groups,
             camera,
             camera_controller,
+            camera_controller_pt,
             depth_texture,
             pt_render,
         }
@@ -148,7 +151,13 @@ impl <'a> State<'a > {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
-        self.camera_controller.process_events(event)
+        self.camera_controller.process_events(event);
+        self.camera_controller_pt.process_events(event)
+    }
+
+    pub fn process_mouse(&mut self, delta_x: f32, delta_y: f32) {
+        self.camera_controller_pt.mouse_x_movement = delta_x;
+        self.camera_controller_pt.mouse_y_movement = delta_y;
     }
 
     pub fn update(&mut self){
@@ -163,7 +172,12 @@ impl <'a> State<'a > {
         {
             // self.pt_render.camera.rotate_camera_pitch(0.01);
             // self.pt_render.camera.rotate_camera_yaw(0.01);
-            self.pt_render.camera.rotate_camera_roll(0.01);
+
+            self.camera_controller_pt.update_camera(&self.queue, &mut self.pt_render);
+
+            // self.pt_render.camera.rotate_camera_roll(0.01);
+            // self.pt_render.update_camera_uniform(&self.queue);
+
             // self.pt_render.render_texture.update_texture(&self.queue, &self.pt_render.camera.render_scene_cpu(&self.pt_render.scene));
             self.pt_render.render_scene_gpu(&self.device, &self.queue);
         }

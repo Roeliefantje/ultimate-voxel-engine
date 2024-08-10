@@ -4,10 +4,11 @@ use wgpu::util::DeviceExt;
 
 use crate::texture::Texture;
 
-use super::{cube::Cube, render_image::RenderImage, scene::Scene, tracing_camera::TracingCamera};
+use super::{cube::Cube, render_image::RenderImage, scene::Scene, tracing_camera::{TracingCamera, TracingCameraController}};
 
 pub struct PTRender {
     pub camera: TracingCamera,
+    pub camera_controller: TracingCameraController,
     pub scene: Scene,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,
@@ -41,11 +42,13 @@ impl PTRender {
             [1920, 1080],
             [10.0, 10.0, 10.0]
         );
+        let camera_controller = TracingCameraController::new();
+
         let scene = Scene::new();
 
         let render_texture = Texture::create_buffer_from_pixel_vec(device, queue, &camera.render_scene_cpu(&scene), "PTRender Texture");
 
-        //Texcture render stuffs
+        //Texture render stuffs
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -230,8 +233,8 @@ impl PTRender {
 
         let mut initial_cube_data = vec![
                 Cube{
-                    min: [0.0, 0.0, 0.0],
-                    max: [0.0, 0.0, 0.0],
+                    min: [0.0, 0.0, 0.0, 0.0],
+                    max: [0.0, 0.0, 0.0, 0.0],
                     color: [0.0, 0.0, 0.0, 0.0],
                 };
                 MAX_CUBES as usize
@@ -317,6 +320,7 @@ impl PTRender {
 
         Self {
             camera,
+            camera_controller,
             scene,
             bind_group_layout,
             bind_group,
@@ -334,6 +338,32 @@ impl PTRender {
             compute_texture_output_buffer
         }
 
+    }
+
+    pub fn update_camera_uniform(
+        &self,
+        queue: &wgpu::Queue,
+    ) {
+        let camera_vectors = [
+            self.camera.origin[0],
+            self.camera.origin[1],
+            self.camera.origin[2],
+            0.0, //Padding
+            self.camera.forward_vec[0],
+            self.camera.forward_vec[1],
+            self.camera.forward_vec[2],
+            0.0, //Padding
+            self.camera.left_vec[0],
+            self.camera.left_vec[1],
+            self.camera.left_vec[2],
+            0.0, //Padding
+            self.camera.up_vec[0],
+            self.camera.up_vec[1],
+            self.camera.up_vec[2],
+            0.0 //Padding
+        ];
+
+        queue.write_buffer(&self.compute_camera_buffer, 0, bytemuck::cast_slice(&[camera_vectors]));
     }
 
     pub fn render_scene_gpu(

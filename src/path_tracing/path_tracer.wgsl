@@ -68,7 +68,7 @@ fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
         return;
     }
 
-    let plane_center = camera.forward_vec;
+    let plane_center = camera.origin + camera.forward_vec;
     let aspect_ratio = 16.0 / 9.0;
 
     let top_left = plane_center + aspect_ratio * camera.left_vec;

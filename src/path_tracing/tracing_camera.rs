@@ -1,4 +1,6 @@
-use super::{quaternion::Quaternion, ray::Ray, render_image::RenderImage, scene::Scene, vector_funcs::{cross_vector, normalize_vector}};
+use winit::{event::{ElementState, KeyEvent, WindowEvent}, keyboard::{KeyCode, PhysicalKey}};
+
+use super::{pt_render::{self, PTRender}, quaternion::Quaternion, ray::Ray, render_image::RenderImage, scene::Scene, vector_funcs::{cross_vector, normalize_vector}};
 
 
 pub struct TracingCamera {
@@ -102,5 +104,124 @@ impl TracingCamera {
 
         render_image
 
+    }
+}
+
+
+pub struct TracingCameraController {
+    pub sensitivity: f32,
+    pub speed: f32,
+    pub is_forward_pressed: bool,
+    pub is_backward_pressed: bool,
+    pub is_left_pressed: bool,
+    pub is_right_pressed: bool,
+    pub mouse_x_movement: f32,
+    pub mouse_y_movement: f32,
+}
+
+impl TracingCameraController {
+    pub fn new() -> Self {
+        Self {
+            sensitivity: 0.01,
+            speed: 0.03,
+            is_forward_pressed: false,
+            is_backward_pressed: false,
+            is_left_pressed: false,
+            is_right_pressed: false,
+            mouse_x_movement: 0.0,
+            mouse_y_movement: 0.0,
+        }
+    }
+
+    pub fn update_camera(
+        &mut self,
+        queue: &wgpu::Queue,
+        pt_render: &mut PTRender,
+    ) {
+        let mut changed = false;
+        if self.is_forward_pressed && !self.is_backward_pressed {
+            pt_render.camera.origin = [
+                pt_render.camera.origin[0] + pt_render.camera.forward_vec[0] * self.speed,
+                pt_render.camera.origin[1] + pt_render.camera.forward_vec[1] * self.speed,
+                pt_render.camera.origin[2] + pt_render.camera.forward_vec[2] * self.speed,
+            ];
+            changed = true;
+        } else if self.is_backward_pressed && !self.is_forward_pressed {
+            pt_render.camera.origin = [
+                pt_render.camera.origin[0] - pt_render.camera.forward_vec[0] * self.speed,
+                pt_render.camera.origin[1] - pt_render.camera.forward_vec[1] * self.speed,
+                pt_render.camera.origin[2] - pt_render.camera.forward_vec[2] * self.speed,
+            ];
+            changed = true;
+        }
+
+        if self.is_left_pressed && !self.is_right_pressed {
+            pt_render.camera.origin = [
+                pt_render.camera.origin[0] + pt_render.camera.left_vec[0] * self.speed,
+                pt_render.camera.origin[1] + pt_render.camera.left_vec[1] * self.speed,
+                pt_render.camera.origin[2] + pt_render.camera.left_vec[2] * self.speed,
+            ];
+            changed = true;
+        } else if self.is_right_pressed && !self.is_left_pressed {
+            pt_render.camera.origin = [
+                pt_render.camera.origin[0] - pt_render.camera.left_vec[0] * self.speed,
+                pt_render.camera.origin[1] - pt_render.camera.left_vec[1] * self.speed,
+                pt_render.camera.origin[2] - pt_render.camera.left_vec[2] * self.speed,
+            ];
+            changed = true;
+        }
+
+        if self.mouse_x_movement != 0.0 {
+            pt_render.camera.rotate_camera_yaw(self.mouse_x_movement * self.sensitivity * -1.0);
+            self.mouse_x_movement = 0.0;
+            changed = true;
+        }
+
+        if self.mouse_y_movement != 0.0 {
+            pt_render.camera.rotate_camera_pitch(self.mouse_y_movement * self.sensitivity * -1.0);
+            self.mouse_y_movement = 0.0;
+            changed = true;
+        }
+
+
+        if changed {
+            pt_render.update_camera_uniform(queue)
+        }
+    }
+
+
+    pub fn process_events(&mut self, event: &WindowEvent) -> bool {
+        match event {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state,
+                        physical_key: PhysicalKey::Code(keycode),
+                        ..
+                    },
+                ..
+            } => {
+                let is_pressed = *state == ElementState::Pressed;
+                match keycode {KeyCode::KeyW | KeyCode::ArrowUp => {
+                        self.is_forward_pressed = is_pressed;
+                        true
+                    }
+                    KeyCode::KeyA | KeyCode::ArrowLeft => {
+                        self.is_left_pressed = is_pressed;
+                        true
+                    }
+                    KeyCode::KeyS | KeyCode::ArrowDown => {
+                        self.is_backward_pressed = is_pressed;
+                        true
+                    }
+                    KeyCode::KeyD | KeyCode::ArrowRight => {
+                        self.is_right_pressed = is_pressed;
+                        true
+                    }
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
     }
 }

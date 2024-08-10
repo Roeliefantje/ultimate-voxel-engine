@@ -4,16 +4,16 @@ use super::ray::Ray;
 #[derive(Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
 pub struct Cube {
-    pub min: [f32; 3],
-    pub max: [f32; 3],
+    pub min: [f32; 4],
+    pub max: [f32; 4],
     pub color: [f32; 4],    
 }
 
 impl Cube {
     pub fn new_cube_at(loc: &[f32; 3], color: [f32; 4]) -> Self {
         Self {
-            min: [loc[0], loc[1], loc[2]],
-            max: [loc[0] + 1.0, loc[1] + 1.0, loc[2] + 1.0],
+            min: [loc[0], loc[1], loc[2], 0.0],
+            max: [loc[0] + 1.0, loc[1] + 1.0, loc[2] + 1.0, 0.0],
             color: color,
         }
     }
