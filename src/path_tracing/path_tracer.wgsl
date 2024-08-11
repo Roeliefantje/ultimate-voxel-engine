@@ -61,6 +61,7 @@ fn intersect_ray(cube: Cube, ray: Ray) -> Ray {
 @compute
 @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
+    //Todo! Fix FOV
     let total = arrayLength(&screen_pixels);
     let index = global_invocation_id.x + 1920 * global_invocation_id.y;
 
@@ -71,10 +72,10 @@ fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
     let plane_center = camera.origin + camera.forward_vec * 3.0;
     let aspect_ratio = 16.0 / 9.0;
 
-    let top_left = plane_center + aspect_ratio * camera.left_vec;
+    let top_left = plane_center + aspect_ratio * camera.left_vec + camera.up_vec;
 
-    let v = f32(global_invocation_id.y) / 1080.0;
-    let u = f32(global_invocation_id.x) / 1920.0;
+    let v = f32(global_invocation_id.y) / 1079.0;
+    let u = f32(global_invocation_id.x) / 1919.0;
 
     let screen_place = top_left - camera.left_vec * u * 2.0 * aspect_ratio - camera.up_vec * v * 2.0;
 

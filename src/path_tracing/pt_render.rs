@@ -37,10 +37,10 @@ impl PTRender {
     ) -> Self {
 
         let camera = TracingCamera::new(
-            [0.0, 0.0, 0.0],
+            [0.0, 5.0, 0.0],
             3.0,
             [1920, 1080],
-            [10.0, 10.0, 10.0]
+            [0.0, 0.0, 0.0]
         );
         let camera_controller = TracingCameraController::new();
 
@@ -395,7 +395,7 @@ impl PTRender {
             buffer: &self.compute_texture_output_buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some((1920 * 4 * 4) as u32), //TODO!: I need to pad I guess for some reason.
+                bytes_per_row: Some((1920 * 4 * 4) as u32),
                 rows_per_image: Some(1080 as u32),
             }
         };
