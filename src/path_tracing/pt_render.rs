@@ -27,7 +27,7 @@ pub struct PTRender {
     pub compute_texture_output_buffer: wgpu::Buffer,
 }
 
-const MAX_CUBES: u32 = 50000;
+const MAX_CUBES: u32 = 200000;
 
 impl PTRender {
     pub fn new(

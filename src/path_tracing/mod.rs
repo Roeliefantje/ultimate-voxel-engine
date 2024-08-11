@@ -6,3 +6,4 @@ pub mod ray;
 pub mod vector_funcs;
 pub mod tracing_camera;
 pub mod scene;
+pub mod chunk;

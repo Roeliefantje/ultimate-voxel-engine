@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use super::{cube::Cube, ray::Ray};
+use super::{chunk::PTObject, cube::Cube, ray::Ray};
 
 pub struct Scene {
     pub cubes: Vec<Cube>,
@@ -13,12 +13,18 @@ impl Scene {
 
         let mut cubes: Vec<Cube> = vec![];
 
-        for _ in 0..1000 {
-            let mut rng = rand::thread_rng();
-            let random_location: [f32; 3] = [rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32];
-            let random_color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];
-            cubes.push(Cube::new_cube_at(&random_location, random_color));
+        // for _ in 0..10 {
+        //     let mut rng = rand::thread_rng();
+        //     let random_location: [f32; 3] = [rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32, rng.gen_range(0..25) as f32];
+        //     let random_color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];
+        //     cubes.push(Cube::new_cube_at(&random_location, random_color));
+        // }
+        for x in -1..1 {
+            for y in -1..1 {
+                cubes.extend_from_slice(PTObject::new(x, y).get_cubes());
+            }
         }
+        
         
 
         Self {
