@@ -27,6 +27,18 @@ const maxfloat = 0x1.fffffep+127f;
 const minfloat = -0x1.fffffep+127f;
 
 fn intersect_ray(cube: Cube, ray: Ray) -> Ray {
+    //Branchless AABB testing right now, we want to change this to use DDA with a Spare Octree instead.
+    //This should help speedup the code and not having to store the aabb should hopefully help reduce memory as well.
+    //We would need a way to find out the collission points and then figure the normal out from there.
+    //Which we can then use to cast a shadow ray.
+    //But A leaf node (cube) should hopefully only contain the color from a cube.
+    //We could do a color or even store an index to a texturemap or something in the future.
+    //Lets say we have 8 colors we can use in the voxel engine, if we store them in a lookup, we could save memory by giving the index instead.
+    //This would also allow for more compelx textures in the future, but I plan on making the voxels so small that they do not need textures.
+    //I plan on having a buffer of Octree's, non-leaf nodes would store the index of its children.
+    //Im not sure yet how I can store this as sparcely as possible, as in, I do not want to store a lot of 0's if an octree only has 1 node.
+    //Maybe we can use a bitflag, this would be 8 bits, but then I'm not entirely sure how I could store the indices.
+    //I'd imagine the octree has to have a set size for the buffer, so I cant exactly use a vec for the children.
 
     var new_ray = ray;
 

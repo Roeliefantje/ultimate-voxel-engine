@@ -123,7 +123,7 @@ impl TracingCameraController {
     pub fn new() -> Self {
         Self {
             sensitivity: 0.01,
-            speed: 0.03,
+            speed: 0.3,
             is_forward_pressed: false,
             is_backward_pressed: false,
             is_left_pressed: false,
