@@ -32,11 +32,12 @@ impl Scene {
         //     let random_color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];
         //     cubes.push(Cube::new_cube_at(&random_location, random_color));
         // }
-        for x in -1..1 {
-            for y in -1..1 {
+        for x in 0..1 {
+            for y in 0..1 {
                 cubes.extend_from_slice(PTObject::new(x, y).get_cubes());
                 let index = chunk_xy_to_grid_location(&grid_size, &x, &y);
                 chunk_grid[index] = true;
+                println!("Cube len: {:?}", cubes.len());
             }
         }
         

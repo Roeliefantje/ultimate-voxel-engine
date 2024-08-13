@@ -4,7 +4,8 @@ use rand::Rng;
 use super::cube::Cube;
 
 pub struct PTObject {
-    pub cubes: Vec<Cube>
+    pub cubes: Vec<Cube>,
+    pub octree: Option<SparseOctree>,
 }
 
 pub struct SparseOctreeNode {
@@ -20,17 +21,28 @@ pub struct SparseOctree {
     pub root: SparseOctreeNode,
 }
 
-const CHUNK_SIZE: i32 = 32;
+const CHUNK_SIZE: i32 = 64;
 
-fn cube_at_loc(loc: [i32; 3]) -> bool {
-    return true;
+fn cube_at_loc(cubes: &Vec<Cube>, loc: [i32; 3]) -> bool {
+    //todo! Construct a lookup table at chunk generation instead of a vec of cubes.
+    
+    for cube in cubes {
+        if cube.min[0] as i32 == loc[0] &&
+           cube.min[1] as i32 == loc[1] &&
+           cube.min[2] as i32 == loc[2] {
+            return true;
+        }
+    }
+
+
+    return false;
 }
 
 fn construct_child(cubes: &Vec<Cube>, bounds: [[i32; 3]; 2]) -> Option<SparseOctreeNode> {
 
     if (bounds[1][0] - bounds[0][0]) as i32 == 1 {
-
-        if cube_at_loc(bounds[0]){
+        if cube_at_loc(cubes, bounds[0]){
+            println!("Spawning leaf node!");
             Some(SparseOctreeNode {
                 is_leaf_node: true,
                 children: None,
@@ -64,26 +76,32 @@ fn construct_child(cubes: &Vec<Cube>, bounds: [[i32; 3]; 2]) -> Option<SparseOct
         let mut children = vec![];
         let mut child_mask = 0;
 
-        for z in 0..1 {
-            for y in 0..1 {
-                for x in 0..1 {
+        for z in 0..2 {
+            for y in 0..2 {
+                for x in 0..2 {
                     let child_bounds_aa = [
-                        bounds[0][0] + distance[0] * x,
-                        bounds[0][1] + distance[1] * y,
-                        bounds[0][2] + distance[2] * z,
+                        bounds[0][0] + distance[0] * x / 2,
+                        bounds[0][1] + distance[1] * y / 2,
+                        bounds[0][2] + distance[2] * z / 2,
                     ];
 
                     let child_bounds_bb = [
-                        bounds[1][0] - distance[0] * (1 - x),
-                        bounds[1][1] - distance[1] * (1 - y),
-                        bounds[1][2] - distance[2] * (1 - z),
+                        bounds[1][0] - distance[0] * (1 - x) / 2,
+                        bounds[1][1] - distance[1] * (1 - y) / 2,
+                        bounds[1][2] - distance[2] * (1 - z) / 2,
                     ];
+                    
+                    // println!("Bounds:");
+                    // println!("{:?}", child_bounds_aa);
+                    // println!("{:?}", child_bounds_bb);
+
+
 
                     let child = construct_child(cubes, [child_bounds_aa, child_bounds_bb]);
                     match child {
                         Some(node) => {
                             children.push(node);
-                            let child_nr = z * 4 + y * 4 + x;
+                            let child_nr = z * 4 + y * 2 + x;
                             child_mask |= 1 << child_nr;
                         },
                         None => {},
@@ -93,6 +111,7 @@ fn construct_child(cubes: &Vec<Cube>, bounds: [[i32; 3]; 2]) -> Option<SparseOct
         }
 
         if child_mask > 0 {
+            println!("Spawning branch node!");
             Some(SparseOctreeNode{
                 is_leaf_node: false,
                 children: Some(children),
@@ -137,17 +156,24 @@ impl PTObject {
             for x in 0..CHUNK_SIZE {
                 // let z_val: f32 = 1.0;
                 let mut z_val = perlin.get([(x_offset + x) as f64 / 10.0, (y_offset + y) as f64 / 10.0]) * 4.0;
-                z_val = f64::floor(z_val as f64);
+                z_val = f64::abs(f64::floor(z_val as f64));
                 let color: [f32; 4] = [rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, rng.gen_range(0..100) as f32 / 100f32, 1.0];
                 let cube = Cube::new_cube_at(&[(x_offset + x) as f32, (y_offset + y) as f32, z_val as f32], color);
                 // println!("z_val: {:?}", z_val);
                 cubes.push(cube);
             }
         }
+        
+        let bounds = [
+            [x_offset, y_offset, 0],
+            [x_offset + CHUNK_SIZE, y_offset + CHUNK_SIZE, CHUNK_SIZE ]
+        ];
 
+        let octree = construct_octree(&cubes, bounds);
 
         Self {
             cubes: cubes,
+            octree: octree,
         }
 
     }
