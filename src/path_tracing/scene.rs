@@ -24,7 +24,7 @@ impl Scene {
 
         let grid_size = 16;
 
-        let mut chunk_grid: Vec<bool> = vec![false; grid_size * grid_size];
+        let mut chunk_grid: Vec<u32> = vec![0; grid_size * grid_size];
 
         // for _ in 0..10 {
         //     let mut rng = rand::thread_rng();
@@ -36,7 +36,7 @@ impl Scene {
             for y in 0..1 {
                 cubes.extend_from_slice(PTObject::new(x, y).get_cubes());
                 let index = chunk_xy_to_grid_location(&grid_size, &x, &y);
-                chunk_grid[index] = true;
+                chunk_grid[index] = 0;
                 println!("Cube len: {:?}", cubes.len());
             }
         }

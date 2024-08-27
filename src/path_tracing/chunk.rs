@@ -1,3 +1,5 @@
+use std::{collections::VecDeque, u32};
+
 use noise::NoiseFn;
 use rand::Rng;
 
@@ -8,6 +10,7 @@ pub struct PTObject {
     pub octree: Option<SparseOctree>,
 }
 
+#[derive(Debug, Copy, Clone,)]
 pub struct SparseOctreeNode {
     pub is_leaf_node: bool,
     pub children: Option<Vec<SparseOctreeNode>>,
@@ -19,6 +22,14 @@ pub struct SparseOctree {
     pub aabb: [[i32; 3]; 2],
     pub max_depth: u32,
     pub root: SparseOctreeNode,
+}
+
+// We can improve on this side a lot, by storing the color in the child_index in case there are no child_masks or something like that.
+// For simplicity sake, I am not going to optimize this now.
+pub struct GpuOctNode {
+    pub child_index: u32,
+    pub child_mask: u8, //This is probably still going to be a u32 in wgpu land
+    pub color: u32, //R8G8B8A8
 }
 
 const CHUNK_SIZE: i32 = 64;
@@ -42,7 +53,7 @@ fn construct_child(cubes: &Vec<Cube>, bounds: [[i32; 3]; 2]) -> Option<SparseOct
 
     if (bounds[1][0] - bounds[0][0]) as i32 == 1 {
         if cube_at_loc(cubes, bounds[0]){
-            println!("Spawning leaf node!");
+            // println!("Spawning leaf node!");
             Some(SparseOctreeNode {
                 is_leaf_node: true,
                 children: None,
@@ -111,7 +122,7 @@ fn construct_child(cubes: &Vec<Cube>, bounds: [[i32; 3]; 2]) -> Option<SparseOct
         }
 
         if child_mask > 0 {
-            println!("Spawning branch node!");
+            // println!("Spawning branch node!");
             Some(SparseOctreeNode{
                 is_leaf_node: false,
                 children: Some(children),
@@ -180,5 +191,56 @@ impl PTObject {
 
     pub fn get_cubes(&self) -> &Vec<Cube> {
         return &self.cubes;
+    }
+
+    pub fn get_octree_array(&self, starting_index: &mut u32) -> Vec<GpuOctNode> {
+        let mut octree_vec: Vec<GpuOctNode> = vec![];
+
+        match &self.octree  {
+            Some(octree) => {
+                let mut octree_queue: VecDeque<&SparseOctreeNode> = VecDeque::new();
+                octree_queue.push_back(&octree.root);
+                
+                while octree_queue.len() > 0 {
+                    let current_node = octree_queue.pop_front().unwrap();
+                    let children_count = amount_of_children(current_node);
+                    if children_count > 0 {
+                        let children_vec = current_node.children.as_ref().unwrap();
+                        for i in 0..children_count {
+                            octree_queue.push_back(&children_vec[i as usize]);
+                        }
+
+
+                        octree_vec.push(GpuOctNode {
+                            child_index: starting_index.clone(),
+                            child_mask: current_node.child_mask.as_ref().unwrap().clone(),
+                            color: 0,
+                        });
+                        *starting_index += children_count;
+
+                    } else {
+                        octree_vec.push(GpuOctNode {
+                            child_index: 0,
+                            child_mask: 0,
+                            color: u32::MAX, // White cube for now, fix this later.
+                        });
+                    }
+                    
+                }
+
+                
+
+
+                octree_vec
+            },
+            _ => octree_vec
+        }
+    }
+}
+
+fn amount_of_children(node: &SparseOctreeNode) -> u32 {
+    match &node.child_mask {
+        Some(mask) => mask.count_ones(),
+        None => 0
     }
 }
